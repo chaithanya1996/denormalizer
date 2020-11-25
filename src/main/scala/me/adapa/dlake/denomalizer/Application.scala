@@ -7,8 +7,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 
 object Application {
   def main(args:Array[String]): Unit ={
-
-
+    
     val appConf = ConfigFactory.load()
 
     val cassConf = new SparkConf(true).set("spark.cassandra.connection.host", appConf.getString("cassandra.host"))
@@ -20,13 +19,17 @@ object Application {
     val spark = SparkSession.builder.config(cassConf)
       .master("local[*]")
       .appName("Delta Table")
+      .config("fs.s3a.connection.ssl.enabled",value = false)
+      .config("fs.s3a.endpoint","s3.nl-ams.scw.cloud")
+      .config("fs.s3a.access.key","SCWTMY7S35A0HMQAHB7M")
+      .config("fs.s3a.secret.key","95a8b635-3b82-4755-8cf0-980652a75d53")
       .getOrCreate()
 
     val factWorkHistory = spark.read
       .format("delta")
       .option("header",value = true)
       .option("inferSchema",value = true)
-      .load("/home/chaithanya/Documents/AssetAnswers/AssetAnswers/FACT_WORKHISTORY")
+      .load(s"s3a://obj/AssetAnswers/FACT_WORKHISTORY")
 
 //    dataFrame.write
 //      .option("header",value = true)
