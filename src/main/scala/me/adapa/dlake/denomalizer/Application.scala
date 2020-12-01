@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import com.typesafe.config.{Config, ConfigFactory}
 import me.adapa.dlake.denomalizer.entities.JobMetadata
-import me.adapa.dlake.denomalizer.executioner.DenormalizerService
+import me.adapa.dlake.denomalizer.executioner.LoadService
 
 object Application {
   def main(args:Array[String]): Unit ={
@@ -36,8 +36,10 @@ object Application {
 //      .appName("Denormalizer Application")
 //      .getOrCreate()
 
-    val denormService = DenormalizerService(jobMetadata,envSparkConf)
-    denormService.execute()
+    val loadService = LoadService(jobMetadata,envSparkConf)
+
+//    loadService.execute()
+
 //    val factWorkHistory = spark.read
 //      .format("delta")
 //      .option("header",value = true)

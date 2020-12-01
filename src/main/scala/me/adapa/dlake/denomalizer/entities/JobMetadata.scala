@@ -10,17 +10,18 @@ import me.adapa.dlake.denomalizer.config.DestinationType
 import me.adapa.dlake.denomalizer.config.ProcessType
 import me.adapa.dlake.denomalizer.config.SourceType
 
+import scala.collection.JavaConverters._
 
 object JobMetadata{
 
-  def apply (jobType: String ,processType: String,sourceType: String,destinationType: String,sourceTable:String,destinationTable:String):JobMetadata = {
+  def apply (jobType: String ,processType: String,sourceType: String,destinationType: String,sourceTableList:String,destinationTableList:String):JobMetadata = {
     new JobMetadata(
       SparkJobType.withName(jobType),
       ProcessType.withName(processType),
       SourceType.withName(sourceType),
       DestinationType.withName(destinationType),
-      sourceTable,
-      destinationTable
+      sourceTableList,
+      destinationTableList
     )
   }
 
