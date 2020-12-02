@@ -14,6 +14,7 @@ import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import scala.annotation.tailrec
 
 object DenormalizerService{
+
   def apply(jobMetadata: JobMetadata, sparkConfig: SparkConf): DenormalizerService = new DenormalizerService(jobMetadata, sparkConfig)
 
   def getRelatedTables(sourceTable:String): List[String] ={
@@ -40,7 +41,7 @@ object DenormalizerService{
     sourceType match {
       case SourceType.cassandra => sparkSessionBuiltObject.read
         .cassandraFormat
-        .option("keyspace", "aa_replica")
+        .option("keyspace", "aa_contextual_model")
         .option("table", sourceTable)
         .load();
 
@@ -67,57 +68,55 @@ object DenormalizerService{
         //    val joinedtable = baseTable.join(lookupTable.)
         //  }
 
-        @tailrec
-        def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame]): DataFrame = lookupTable match {
-          case Nil => baseTable
-          case headDf :: tailDfs => denormJoinTables(baseTable.join(headDf),tailDfs)
-        }
+  @tailrec
+  def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame]): DataFrame = lookupTable match {
+    case Nil => baseTable
+    case headDf :: tailDfs => denormJoinTables(baseTable.join(headDf),tailDfs)
+  }
 
-        def readerService(jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): DataFrame = {
-          val relatedTablesList = getRelatedTables(jobMetadata.sourceTable);
-          def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,sparkSessionBuiltObject)(_);
-          val lookupDFList = relatedTablesList.map( tName => singleTableReaderTemplate(tName))
-          val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceTable)
-          val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList);
-          return joinedTables;
-        }
+  def readerService(jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): DataFrame = {
+    val relatedTablesList = getRelatedTables(jobMetadata.sourceTable);
+    def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,sparkSessionBuiltObject)(_);
+    val lookupDFList = relatedTablesList.map( tName => singleTableReaderTemplate(tName))
+    val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceTable)
+    val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList);
+    return joinedTables;
+  }
 
-        def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: JobMetadata): Unit = {
+  def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: JobMetadata): Unit = {
 
-          jobMetadata.destinationType match {
+    jobMetadata.destinationType match {
 
-            case DestinationType.cassandra => {
+      case DestinationType.cassandra => {
 
-              // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
+        // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
 
-              val ColumnNames = sparkDataFrameToWrite.columns
-              val LowerCaseColumnNames = ColumnNames.map(x => x.toLowerCase)
-              val columnNamesZipped = ColumnNames.zip(LowerCaseColumnNames).map(x => col(x._1).as(x._2))
-              val sparkDataFrameToWriteRenamed = sparkDataFrameToWrite.select(columnNamesZipped: _*)
+        val ColumnNames = sparkDataFrameToWrite.columns
+        val LowerCaseColumnNames = ColumnNames.map(x => x.toLowerCase)
+        val columnNamesZipped = ColumnNames.zip(LowerCaseColumnNames).map(x => col(x._1).as(x._2))
+        val sparkDataFrameToWriteRenamed = sparkDataFrameToWrite.select(columnNamesZipped: _*)
 
-              sparkDataFrameToWriteRenamed.write
-                .cassandraFormat
-                .option("keyspace", "aa_replica")
-                .option("table", jobMetadata.destinationTable)
-                .mode(SaveMode.Append)
-                .save();
-            }
+        sparkDataFrameToWriteRenamed.write
+          .cassandraFormat
+          .option("keyspace", "aa_replica")
+          .option("table", jobMetadata.destinationTable)
+          .mode(SaveMode.Append)
+          .save();
+      }
 
 
-            case DestinationType.delta =>
-              sparkDataFrameToWrite.write
-                .format("delta")
-                .mode(SaveMode.Append)
-                .save(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
+      case DestinationType.delta =>
+        sparkDataFrameToWrite.write
+          .format("delta")
+          .mode(SaveMode.Append)
+          .save(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
 
-          }
-        }
+    }
+  }
 
   }
 
 class DenormalizerService(jobMetadata: JobMetadata, sparkConfig: SparkConf) extends ExecutionerService {
-
-
 
 }
 
