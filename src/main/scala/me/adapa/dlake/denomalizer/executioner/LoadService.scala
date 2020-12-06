@@ -37,14 +37,13 @@ object LoadService{
         jdbcConnectionProperties.setProperty("password","A@adapa1996")
 
         sparkSessionBuiltObject.read
-          .jdbc(s"jdbc:sqlserver://localhost:1433;databaseName=AssetAnswers_Demo",
+          .jdbc(s"jdbc:sqlserver://192.168.0.89:1433;databaseName=AssetAnswers_Demo",
             jobMetadata.sourceTable,
             jdbcConnectionProperties)
       }
 
     }
   }
-
 
   def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: JobMetadata): Unit ={
 
@@ -66,7 +65,6 @@ object LoadService{
           .mode(SaveMode.Append)
           .save();
       }
-
 
       case DestinationType.delta =>
         sparkDataFrameToWrite.write

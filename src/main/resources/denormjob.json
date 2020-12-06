@@ -1,0 +1,25 @@
+{
+    "jobtype" : "Full",
+    "processtype" : "Load",
+
+    "sourcetype" : "jdbc",
+    "destinationtype" : "cassandra",
+
+    "sourcetable" : "FACT_EQUIPMENT",
+    "destinationtable" : "fact_equipment",
+
+    "sourcecredentials" : {
+        "username" : "sa",
+        "password" : "A@radical1996",
+        "hostname" : "localhost",
+        "port" : 1433,
+        "uri" : ""
+    },
+
+    "destinationcredentials" : {
+            "username" : "sa",
+            "password" : "A@radical1996",
+            "hostname" : "localhost",
+            "port" : 9042
+    }
+}

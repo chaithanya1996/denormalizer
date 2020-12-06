@@ -28,6 +28,9 @@ libraryDependencies += "com.google.guava" % "guava" % "30.0-jre"
 libraryDependencies += "com.typesafe" % "config" % "1.4.1"
 //libraryDependencies += "com.amazonaws" % "aws-java-sdk" % "1.10.6"
 libraryDependencies += "com.microsoft.sqlserver" % "mssql-jdbc" % "8.2.2.jre11"
+libraryDependencies += "org.json4s" %% "json4s-native" % "3.6.10"
+
+
 
 assemblyMergeStrategy in assembly := {
   case "mozilla/public-suffix-list.txt"                            => MergeStrategy.first

@@ -1,11 +1,12 @@
 package me.adapa.dlake.denomalizer.executioner
 
 import java.util.Properties
-
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
+import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType}
 import me.adapa.dlake.denomalizer.entities.JobMetadata
 import me.adapa.dlake.denomalizer.executioner.DenormalizerService.getRelatedTables
+import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
 import org.apache.spark.sql.functions.col
@@ -17,25 +18,6 @@ object DenormalizerService{
 
   def apply(jobMetadata: JobMetadata, sparkConfig: SparkConf): DenormalizerService = new DenormalizerService(jobMetadata, sparkConfig)
 
-  def getRelatedTables(sourceTable:String): List[String] ={
-
-    sourceTable.toLowerCase match {
-      case "fact_workhistory" => List("DIM_FAILURE_CODE",
-        "CORPORATION_HIERARCHY",
-        "DIM_WH_BREAKDOWN",
-        "DIM_WH_DETECTION_METHOD",
-        "DIM_WH_EVENT_TYPE",
-        "DIM_WH_PRIORITY",
-        "DIM_EQ_CRITICALITY",
-        "FACT_EQUIPMENT",
-        "DIM_EQ_CRITICALITY",
-        "DIM_EQ_MFR",
-        "EQ_MODEL_NO",
-        "TAXONOMY_HIERARCHY",
-        "FACT_EQ_DOWNTIME_EVENTS")
-      case _ => List[String]()
-    }
-  }
 
   def ReadSingleTable(sourceType: SourceType, sparkSessionBuiltObject:SparkSession) (sourceTable: String):DataFrame = {
     sourceType match {
@@ -56,7 +38,7 @@ object DenormalizerService{
         jdbcConnectionProperties.setProperty("password", "A@adapa1996")
 
         sparkSessionBuiltObject.read
-          .jdbc(s"jdbc:sqlserver://localhost:1433;databaseName=AssetAnswers_Demo",
+          .jdbc(s"jdbc:sqlserver://192.168.0.68:1433;databaseName=AssetAnswers_Demo",
             sourceTable,
             jdbcConnectionProperties)
       }
@@ -117,6 +99,25 @@ object DenormalizerService{
   }
 
 class DenormalizerService(jobMetadata: JobMetadata, sparkConfig: SparkConf) extends ExecutionerService {
+
+  val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(sparkConfig)
+    .master("local[*]")
+    .appName("Denormalizer Application")
+    .getOrCreate()
+
+
+  def execute(): Unit ={
+
+    /* TODO
+    *  Partition Support for Spark Data
+    * */
+
+    val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
+    sourceRawDf.printSchema()
+    // writerService(sourceRawDf,jobMetadata)
+
+    sparkSessionBuiltObject.stop()
+  }
 
 }
 

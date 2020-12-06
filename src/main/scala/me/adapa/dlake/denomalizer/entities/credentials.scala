@@ -1,7 +1,7 @@
 package me.adapa.dlake.denomalizer.entities
 
-sealed trait denormcredentials
-case class cassandraCredentials() extends denormcredentials
-case class s3Credentials() extends denormcredentials
-case class jdbcCredentials() extends denormcredentials
-case class cassandraFileCredentials() extends denormcredentials
+
+sealed trait DenromCredentials
+case class cassandraCredentials(username:String, password: String,hostname:String, port:Int = 9042) extends DenromCredentials
+case class s3Credentials(url:String, accessKey:String, secretKey:String) extends DenromCredentials
+case class jdbcCredentials(username:String, password: String,hostname:String, port:Int = 9042,uri:String) extends DenromCredentials
