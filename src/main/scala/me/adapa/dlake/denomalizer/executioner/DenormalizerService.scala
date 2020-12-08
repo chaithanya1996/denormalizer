@@ -5,7 +5,6 @@ import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType}
 import me.adapa.dlake.denomalizer.entities.JobMetadata
-import me.adapa.dlake.denomalizer.executioner.DenormalizerService.getRelatedTables
 import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
@@ -16,8 +15,7 @@ import scala.annotation.tailrec
 
 object DenormalizerService{
 
-  def apply(jobMetadata: JobMetadata, sparkConfig: SparkConf): DenormalizerService = new DenormalizerService(jobMetadata, sparkConfig)
-
+  def apply(jobMetadata: JobMetadata): DenormalizerService = new DenormalizerService(jobMetadata)
 
   def ReadSingleTable(sourceType: SourceType, sparkSessionBuiltObject:SparkSession) (sourceTable: String):DataFrame = {
     sourceType match {
@@ -44,11 +42,6 @@ object DenormalizerService{
       }
     }
   }
-
-        //  def denormJoinTables(baseTable:DataFrame)(lookupTable: List[DataFrame]):DataFrame = {
-        //    if(lookupTable.isEmpty) return baseTable
-        //    val joinedtable = baseTable.join(lookupTable.)
-        //  }
 
   @tailrec
   def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame]): DataFrame = lookupTable match {
@@ -85,22 +78,18 @@ object DenormalizerService{
           .mode(SaveMode.Append)
           .save();
       }
-
-
       case DestinationType.delta =>
         sparkDataFrameToWrite.write
           .format("delta")
           .mode(SaveMode.Append)
           .save(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
-
     }
   }
+}
 
-  }
+class DenormalizerService(jobMetadata: JobMetadata) extends ExecutionerService {
 
-class DenormalizerService(jobMetadata: JobMetadata, sparkConfig: SparkConf) extends ExecutionerService {
-
-  val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(sparkConfig)
+  val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")
     .appName("Denormalizer Application")
     .getOrCreate()
@@ -118,7 +107,6 @@ class DenormalizerService(jobMetadata: JobMetadata, sparkConfig: SparkConf) exte
 
     sparkSessionBuiltObject.stop()
   }
-
 }
 
 

@@ -13,7 +13,7 @@ import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 object LoadService{
 
-  def apply(jobMetadata: JobMetadata, sparkConfig: SparkConf): LoadService = new LoadService(jobMetadata, sparkConfig)
+  def apply(jobMetadata: JobMetadata): LoadService = new LoadService(jobMetadata)
 
   def readerService(jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): DataFrame = {
 
@@ -78,9 +78,9 @@ object LoadService{
 
 }
 
-class LoadService(jobMetadata: JobMetadata, sparkConfig: SparkConf) extends ExecutionerService {
+class LoadService(jobMetadata: JobMetadata) extends ExecutionerService {
 
-  val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(sparkConfig)
+  val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")
     .appName("Denormalizer Application")
     .getOrCreate()
