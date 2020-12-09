@@ -14,15 +14,17 @@ import org.json4s.native.JsonMethods._
 
 
 object JobMetadata {
-  def apply(jobType: String, processType: String, sourceType: String, destinationType: String, sourceTableList: String, destinationTableList: String, generatedSparkConf: SparkConf): JobMetadata = {
+  def apply(jobType: String, processType: String, sourceType: String, destinationType: String, sourceTable: String,sourceTableKey: String, destinationTable: String, destinationTableKey: String,  generatedSparkConf: SparkConf): JobMetadata = {
 
     new JobMetadata(
       SparkJobType.withName(jobType),
       ProcessType.withName(processType),
       SourceType.withName(sourceType),
       DestinationType.withName(destinationType),
-      sourceTableList,
-      destinationTableList,
+      sourceTable,
+      sourceTableKey,
+      destinationTable,
+      destinationTableKey,
       generatedSparkConf)
   }
   def apply(appConfig: String): JobMetadata = {
@@ -40,7 +42,15 @@ object JobMetadata {
           .set("spark.cassandra.auth.username", cassCreds.username)
           .set("spark.cassandra.auth.password", cassCreds.password)
       }
-      case "delta" => {
+      case "delta"  => {
+        val s3Creds = (parsedJson \ "sourcecredentials").extract[s3Credentials]
+        generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
+          .set("fs.s3a.endpoint", s3Creds.url)
+          .set("fs.s3a.access.key", s3Creds.accessKey)
+          .set("fs.s3a.secret.key", s3Creds.secretKey)
+      }
+
+      case "s3"  => {
         val s3Creds = (parsedJson \ "sourcecredentials").extract[s3Credentials]
         generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
           .set("fs.s3a.endpoint", s3Creds.url)
@@ -79,8 +89,10 @@ object JobMetadata {
       (parsedJson \ "processtype").extract[String],
       (parsedJson \ "sourcetype").extract[String],
       (parsedJson \ "destinationtype").extract[String],
-      (parsedJson \ "sourcetable").extract[String],
-      (parsedJson \ "destinationtable").extract[String],
+      (parsedJson \ "sourcetable" \ "name").extract[String],
+      (parsedJson \ "sourcetable" \ "idkey").extract[String],
+      (parsedJson \ "destinationtable"\ "name").extract[String],
+      (parsedJson \ "destinationtable" \ "idkey").extract[String],
       generatedSparkConf)
 
   }
@@ -90,6 +102,8 @@ case class JobMetadata(jobTypes: SparkJobType,
                        sourceType: SourceType,
                        destinationType: DestinationType,
                        sourceTable:String,
+                       sourceTableKey:String,
                        destinationTable:String,
+                       destinationTableKey:String,
                        sparkConf:SparkConf)
 

@@ -1,19 +1,24 @@
 {
-    "jobtype" : "Full",
+    "jobtype" : "Initial",
     "processtype" : "Load",
 
-    "sourcetype" : "jdbc",
+    "sourcetype" : "s3",
     "destinationtype" : "cassandra",
 
-    "sourcetable" : "FACT_EQUIPMENT",
-    "destinationtable" : "fact_equipment",
+    "sourcetable" : {
+      "name" : "FACT_EQUIPMENT",
+      "idkey" : "EQ_KEY"
+    },
+
+    "destinationtable" : {
+      "name" : "fact_equipment",
+      "idkey" : "eq_key"
+    },
 
     "sourcecredentials" : {
-        "username" : "sa",
-        "password" : "A@radical1996",
-        "hostname" : "localhost",
-        "port" : 1433,
-        "uri" : ""
+        "accessKey" : "sa",
+        "secretKey" : "A@radical1996",
+        "url" : "s"
     },
 
     "destinationcredentials" : {
