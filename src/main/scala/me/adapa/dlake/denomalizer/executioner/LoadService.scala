@@ -1,9 +1,8 @@
 package me.adapa.dlake.denomalizer.executioner
 
 import io.delta.tables.DeltaTable
-
-import me.adapa.dlake.denomalizer.entities.JobMetadata
-import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobType}
+import me.adapa.dlake.denomalizer.config.{DestinationType, SparkJobType}
+import me.adapa.dlake.denomalizer.entities.metadata.LoadMetaData
 import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
 import org.apache.spark.sql.cassandra.DataFrameWriterWrapper
 import org.apache.spark.sql.functions.col
@@ -11,29 +10,32 @@ import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 object LoadService {
 
-  def apply(jobMetadata: JobMetadata): LoadService = new LoadService(jobMetadata)
+  def apply(jobMetadata: LoadMetaData): LoadService = new LoadService(jobMetadata)
 
-  def readerService(jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): DataFrame = {
+  def readerService(jobMetadata: LoadMetaData, sparkSessionBuiltObject:SparkSession): DataFrame = {
 
-    jobMetadata.jobTypes match {
+    jobMetadata.sparkJobType match {
       case SparkJobType.Initial => {
        sparkSessionBuiltObject.read
-          .format("delta")
+          .format("json")
           .option("header", value = true)
-          .load(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
+          .load(s"s3a://${jobMetadata.sourceLocationInfo.groupname}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
       }
+
+
       case SparkJobType.Incremental => {
         sparkSessionBuiltObject.read
-          .format("delta")
+          .format("json")
           .option("header", value = true)
-          .load(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
+          .load(s"s3a://${jobMetadata.sourceLocationInfo.groupname}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
+
       }
     }
   }
 
-  def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): Unit ={
+  def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: LoadMetaData, sparkSessionBuiltObject:SparkSession): Unit ={
 
-    jobMetadata.jobTypes match {
+    jobMetadata.sparkJobType match {
       case SparkJobType.Initial =>
         jobMetadata.destinationType match {
           case DestinationType.cassandra => {
@@ -47,8 +49,8 @@ object LoadService {
 
             sparkDataFrameToWriteRenamed.write
               .cassandraFormat
-              .option("keyspace", "aa_replica")
-              .option("table", jobMetadata.destinationTable)
+              .option("keyspace", jobMetadata.destLocationInfo.groupname)
+              .option("table", jobMetadata.destLocationInfo.getTableName)
               .mode(SaveMode.Append)
               .save();
           }
@@ -57,7 +59,8 @@ object LoadService {
             sparkDataFrameToWrite.write
               .format("delta")
               .mode(SaveMode.Overwrite)
-              .save(s"s3a://obj/AssetAnswers/${jobMetadata.destinationTable}");
+              .save(s"s3a://${jobMetadata.destLocationInfo.groupname}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
+
 
         }
 
@@ -72,14 +75,14 @@ object LoadService {
 
             sparkDataFrameToWriteRenamed.write
               .cassandraFormat
-              .option("keyspace", "aa_replica")
-              .option("table", jobMetadata.destinationTable)
+              .option("keyspace", jobMetadata.destLocationInfo.groupname)
+              .option("table", jobMetadata.destLocationInfo.getTableName)
               .mode(SaveMode.Append)
               .save();
           }
 
           case DestinationType.delta => {
-            val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://obj/AssetAnswers/${jobMetadata.destinationTable}")
+            val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.groupname}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
             currentDeltaTable.as("currentDelta")
               .merge(sparkDataFrameToWrite.as("sparkDf"), sparkDataFrameToWrite.col(""))
               .whenMatched
@@ -97,7 +100,7 @@ object LoadService {
 
 }
 
-class LoadService(jobMetadata: JobMetadata) extends ExecutionerService {
+class LoadService(jobMetadata: LoadMetaData) extends ExecutionerService {
 
   val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")
@@ -105,11 +108,9 @@ class LoadService(jobMetadata: JobMetadata) extends ExecutionerService {
     .getOrCreate()
 
 
-  def execute(): Unit ={
+  def execute(): Unit = {
 
-    /* TODO
-    *  Partition Support for Spark Data
-    * */
+    //TODO Partition Support for Spark Data
 
     val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
     sourceRawDf.printSchema()

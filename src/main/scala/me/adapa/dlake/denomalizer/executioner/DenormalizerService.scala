@@ -5,8 +5,7 @@ import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType}
 import me.adapa.dlake.denomalizer.entities.JobMetadata
-import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
-import org.apache.spark.SparkConf
+import me.adapa.dlake.denomalizer.executioner.DenormalizerService.readerService
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}

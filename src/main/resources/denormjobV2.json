@@ -1,0 +1,73 @@
+{
+  "process_type" : "Load",
+
+  "source_type" : "cassandra",
+  "destination_type" : "cassandra",
+
+  "load_metadata": {
+
+    "job_type" : "Initial",
+    "file_name": "",
+
+    "source_table" : {
+      "name" : "FACT_EQUIPMENT",
+      "id_key" : "EQ_KEY",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "destination_table" : {
+      "name" : "fact_equipment",
+      "id_key" : "eq_key",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "source_credentials" : {
+      "access_key" : "sa",
+      "secret_key" : "A@radical1996",
+      "url" : "s"
+    },
+
+    "destination_credentials" : {
+      "username" : "sa",
+      "password" : "A@radical1996",
+      "hostname" : "localhost",
+      "port" : 9042
+    }
+  },
+
+  "denorm_metadata": {
+
+    "job_type" : "Initial",
+
+    "source_table" : {
+      "name" : "FACT_EQUIPMENT",
+      "id_key" : "EQ_KEY",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "destination_table" : {
+      "name" : "fact_equipment",
+      "id_key" : "eq_key",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "source_credentials" : {
+      "access_key" : "sa",
+      "secret_key" : "A@radical1996",
+      "url" : "s"
+    },
+
+    "destination_credentials" : {
+      "username" : "sa",
+      "password" : "A@radical1996",
+      "hostname" : "localhost",
+      "port" : 9042
+    }
+
+  }
+
+}
