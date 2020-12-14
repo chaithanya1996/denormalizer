@@ -2,7 +2,7 @@ package me.adapa.dlake.denomalizer.entities
 
 sealed trait locationClass {
   def getTableName:String ;
-  def groupname:String ;
+  def getGroupName:String ;
   def getSuffix:String;
   def getKey:String;
 }
@@ -10,7 +10,7 @@ sealed trait locationClass {
 class S3Location(tableName : String,bucketName: String,suffixpath:String) extends locationClass {
   override def getTableName: String = return tableName
 
-  override def groupname: String = return bucketName
+  override def getGroupName: String = return bucketName
 
   override def getSuffix: String = return suffixpath
 
@@ -20,7 +20,7 @@ class S3Location(tableName : String,bucketName: String,suffixpath:String) extend
 class CassandraLocation(tableName : String,keyspaceName:String,idkey:String) extends locationClass {
   override def getTableName: String = return tableName
 
-  override def groupname: String = return keyspaceName
+  override def getGroupName: String = return keyspaceName
 
   override def getSuffix: String = return null
 

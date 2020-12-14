@@ -4,41 +4,41 @@ import java.util.Properties
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType}
-import me.adapa.dlake.denomalizer.entities.JobMetadata
+import me.adapa.dlake.denomalizer.entities.locationClass
+import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
 import me.adapa.dlake.denomalizer.executioner.DenormalizerService.readerService
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 import scala.annotation.tailrec
 
 object DenormalizerService{
 
-  def apply(jobMetadata: JobMetadata): DenormalizerService = new DenormalizerService(jobMetadata)
+  def apply(jobMetadata: DenormMetaData): DenormalizerService = new DenormalizerService(jobMetadata)
 
-  def ReadSingleTable(sourceType: SourceType, sparkSessionBuiltObject:SparkSession) (sourceTable: String):DataFrame = {
+  def ReadSingleTable(sourceType: SourceType,sourceLocationInfo: locationClass, sparkSessionBuiltObject:SparkSession) (sourceTable:String):DataFrame = {
     sourceType match {
       case SourceType.cassandra => sparkSessionBuiltObject.read
         .cassandraFormat
-        .option("keyspace", "aa_contextual_model")
-        .option("table", sourceTable)
+        .option("keyspace", sourceLocationInfo.getGroupName)
+        .option("table", sourceLocationInfo.getTableName)
         .load();
 
       case SourceType.delta => sparkSessionBuiltObject.read
         .format("delta")
         .option("header", value = true)
-        .load(s"s3a://obj/AssetAnswers/${sourceTable}");
+        .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceLocationInfo.getTableName}");
 
-      case SourceType.jdbc => {
-        val jdbcConnectionProperties = new Properties()
-        jdbcConnectionProperties.setProperty("user", "sa")
-        jdbcConnectionProperties.setProperty("password", "A@adapa1996")
-
-        sparkSessionBuiltObject.read
-          .jdbc(s"jdbc:sqlserver://192.168.0.68:1433;databaseName=AssetAnswers_Demo",
-            sourceTable,
-            jdbcConnectionProperties)
-      }
+//      case SourceType.jdbc => {
+//        val jdbcConnectionProperties = new Properties()
+//        jdbcConnectionProperties.setProperty("user", "sa")
+//        jdbcConnectionProperties.setProperty("password", "A@adapa1996")
+//
+//        sparkSessionBuiltObject.read
+//          .jdbc(s"jdbc:sqlserver://192.168.0.68:1433;databaseName=AssetAnswers_Demo",
+//            sourceTable,
+//            jdbcConnectionProperties)
+//      }
     }
   }
 
@@ -48,16 +48,18 @@ object DenormalizerService{
     case headDf :: tailDfs => denormJoinTables(baseTable.join(headDf),tailDfs)
   }
 
-  def readerService(jobMetadata: JobMetadata, sparkSessionBuiltObject:SparkSession): DataFrame = {
-    val relatedTablesList = getRelatedTables(jobMetadata.sourceTable);
-    def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,sparkSessionBuiltObject)(_);
+  def readerService(jobMetadata: DenormMetaData, sparkSessionBuiltObject:SparkSession): DataFrame = {
+
+    val relatedTablesList = getRelatedTables(jobMetadata.sourceLocationInfo.getTableName);
+    def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_);
     val lookupDFList = relatedTablesList.map( tName => singleTableReaderTemplate(tName))
-    val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceTable)
+    val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceLocationInfo.getTableName)
     val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList);
+
     return joinedTables;
   }
 
-  def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: JobMetadata): Unit = {
+  def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: DenormMetaData): Unit = {
 
     jobMetadata.destinationType match {
 
@@ -65,15 +67,12 @@ object DenormalizerService{
 
         // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
 
-        val ColumnNames = sparkDataFrameToWrite.columns
-        val LowerCaseColumnNames = ColumnNames.map(x => x.toLowerCase)
-        val columnNamesZipped = ColumnNames.zip(LowerCaseColumnNames).map(x => col(x._1).as(x._2))
-        val sparkDataFrameToWriteRenamed = sparkDataFrameToWrite.select(columnNamesZipped: _*)
+        val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
 
         sparkDataFrameToWriteRenamed.write
           .cassandraFormat
-          .option("keyspace", "aa_replica")
-          .option("table", jobMetadata.destinationTable)
+          .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
+          .option("table", jobMetadata.destLocationInfo.getTableName)
           .mode(SaveMode.Append)
           .save();
       }
@@ -81,12 +80,12 @@ object DenormalizerService{
         sparkDataFrameToWrite.write
           .format("delta")
           .mode(SaveMode.Append)
-          .save(s"s3a://obj/AssetAnswers/${jobMetadata.sourceTable}");
+          .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
     }
   }
 }
 
-class DenormalizerService(jobMetadata: JobMetadata) extends ExecutionerService {
+class DenormalizerService(jobMetadata: DenormMetaData)  {
 
   val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")

@@ -1,7 +1,7 @@
 {
   "process_type" : "Load",
 
-  "source_type" : "cassandra",
+  "source_type" : "s3",
   "destination_type" : "cassandra",
 
   "load_metadata": {
@@ -40,6 +40,9 @@
   "denorm_metadata": {
 
     "job_type" : "Initial",
+
+    "source_type" : "delta",
+    "destination_type" : "cassandra",
 
     "source_table" : {
       "name" : "FACT_EQUIPMENT",

@@ -19,7 +19,7 @@ object LoadService {
        sparkSessionBuiltObject.read
           .format("json")
           .option("header", value = true)
-          .load(s"s3a://${jobMetadata.sourceLocationInfo.groupname}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
+          .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
       }
 
 
@@ -27,7 +27,7 @@ object LoadService {
         sparkSessionBuiltObject.read
           .format("json")
           .option("header", value = true)
-          .load(s"s3a://${jobMetadata.sourceLocationInfo.groupname}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
+          .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
 
       }
     }
@@ -41,15 +41,11 @@ object LoadService {
           case DestinationType.cassandra => {
 
             // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
-
-            val ColumnNames = sparkDataFrameToWrite.columns
-            val LowerCaseColumnNames = ColumnNames.map(x => x.toLowerCase)
-            val columnNamesZipped = ColumnNames.zip(LowerCaseColumnNames).map(x => col(x._1).as(x._2))
-            val sparkDataFrameToWriteRenamed = sparkDataFrameToWrite.select(columnNamesZipped: _*)
+            val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
 
             sparkDataFrameToWriteRenamed.write
               .cassandraFormat
-              .option("keyspace", jobMetadata.destLocationInfo.groupname)
+              .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
               .option("table", jobMetadata.destLocationInfo.getTableName)
               .mode(SaveMode.Append)
               .save();
@@ -59,7 +55,7 @@ object LoadService {
             sparkDataFrameToWrite.write
               .format("delta")
               .mode(SaveMode.Overwrite)
-              .save(s"s3a://${jobMetadata.destLocationInfo.groupname}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
+              .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
 
 
         }
@@ -75,14 +71,14 @@ object LoadService {
 
             sparkDataFrameToWriteRenamed.write
               .cassandraFormat
-              .option("keyspace", jobMetadata.destLocationInfo.groupname)
+              .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
               .option("table", jobMetadata.destLocationInfo.getTableName)
               .mode(SaveMode.Append)
               .save();
           }
 
           case DestinationType.delta => {
-            val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.groupname}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
+            val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
             currentDeltaTable.as("currentDelta")
               .merge(sparkDataFrameToWrite.as("sparkDf"), sparkDataFrameToWrite.col(""))
               .whenMatched
@@ -100,7 +96,7 @@ object LoadService {
 
 }
 
-class LoadService(jobMetadata: LoadMetaData) extends ExecutionerService {
+class LoadService(jobMetadata: LoadMetaData)  {
 
   val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")

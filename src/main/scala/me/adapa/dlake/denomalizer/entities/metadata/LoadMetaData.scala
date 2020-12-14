@@ -10,4 +10,4 @@ case class LoadMetaData(sparkJobType: SparkJobType,
                         destinationType: DestinationType,
                         sourceLocationInfo: locationClass,
                         destLocationInfo: locationClass,
-                        sparkConf: SparkConf) extends Basemetadata
+                        sparkConf: SparkConf)
