@@ -80,7 +80,7 @@ object LoadService {
           case DestinationType.delta => {
             val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
             currentDeltaTable.as("currentDelta")
-              .merge(sparkDataFrameToWrite.as("sparkDf"), sparkDataFrameToWrite.col(""))
+              .merge(sparkDataFrameToWrite.as("sparkDf"), s"sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
               .whenMatched
               .updateAll
               .whenNotMatched

@@ -10,7 +10,7 @@ object LoadServiceApplication {
   def main(args:Array[String]): Unit ={
     // Read Application configuration
     //    val appConf:Config = ConfigFactory.load("denormjob.json");
-    val filePath = "/home/chaithanya/Documents/Projects/denormalizer/src/main/resources/denormjob.json"
+    val filePath = "/home/chaithanya/Documents/Projects/denormalizer/src/main/resources/denormjobV2.json"
     val rawjsonString:String = Source.fromFile(filePath).getLines().mkString("\n")
     val jobMetadata:LoadMetaData = MetaDataFactory.getLoadMetadata(rawjsonString);
     // Reading Config from environment

@@ -17,12 +17,12 @@ object MetaDataFactory {
       val locationSource: locationClass = (parsedJson \ "source_type").extract[String] match {
         case "s3" => {
 
-          val extractedS3Creds: s3Credentials = (parsedJson \ "source_credentials").extract[s3Credentials]
+          val extractedS3Creds: s3Credentials = (parsedJson \ "load_metadata"  \ "source_credentials").extract[s3Credentials]
 
           generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
             .set("fs.s3a.endpoint", extractedS3Creds.url)
-            .set("fs.s3a.access.key", extractedS3Creds.accessKey)
-            .set("fs.s3a.secret.key", extractedS3Creds.secretKey)
+            .set("fs.s3a.access.key", extractedS3Creds.access_key)
+            .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
 
           (parsedJson \ "load_metadata" \ "source_table").extract[S3Location]
 
@@ -32,7 +32,7 @@ object MetaDataFactory {
 
       val locationDest: locationClass = (parsedJson \ "destination_type").extract[String] match {
         case "cassandra" => {
-          val cassCreds = (parsedJson \ "source_credentials").extract[cassandraCredentials]
+          val cassCreds = (parsedJson \ "load_metadata" \ "source_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
             .set("spark.cassandra.auth.username", cassCreds.username)
             .set("spark.cassandra.auth.password", cassCreds.password)
@@ -40,11 +40,11 @@ object MetaDataFactory {
           (parsedJson \ "load_metadata" \ "destination_table").extract[CassandraLocation]
         }
         case "delta" => {
-          val extractedS3Creds: s3Credentials = (parsedJson \ "source_credentials").extract[s3Credentials]
+          val extractedS3Creds: s3Credentials = (parsedJson \ "load_metadata" \ "source_credentials").extract[s3Credentials]
           generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
             .set("fs.s3a.endpoint", extractedS3Creds.url)
-            .set("fs.s3a.access.key", extractedS3Creds.accessKey)
-            .set("fs.s3a.secret.key", extractedS3Creds.secretKey)
+            .set("fs.s3a.access.key", extractedS3Creds.access_key)
+            .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
 
           (parsedJson \ "load_metadata" \ "destination_table").extract[S3Location]
         }
@@ -65,7 +65,7 @@ object MetaDataFactory {
       val locationSource: locationClass = (parsedJson \ "source_type").extract[String] match {
 
         case "cassandra" => {
-          val cassCreds = (parsedJson \ "source_credentials").extract[cassandraCredentials]
+          val cassCreds = (parsedJson \ "denorm_metadata" \ "source_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
             .set("spark.cassandra.auth.username", cassCreds.username)
             .set("spark.cassandra.auth.password", cassCreds.password)
@@ -73,17 +73,17 @@ object MetaDataFactory {
           (parsedJson \ "load_metadata" \ "source_table").extract[CassandraLocation]
         }
         case "delta" => {
-          val extractedS3Creds: s3Credentials = (parsedJson \ "source_credentials").extract[s3Credentials]
+          val extractedS3Creds: s3Credentials = (parsedJson \ "denorm_metadata" \ "source_credentials").extract[s3Credentials]
           generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
             .set("fs.s3a.endpoint", extractedS3Creds.url)
-            .set("fs.s3a.access.key", extractedS3Creds.accessKey)
-            .set("fs.s3a.secret.key", extractedS3Creds.secretKey)
+            .set("fs.s3a.access.key", extractedS3Creds.access_key)
+            .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
 
           (parsedJson \ "load_metadata" \ "source_table").extract[S3Location]
         }
       }
 
-      val locationDest: locationClass = (parsedJson \ "destination_type").extract[String] match {
+      val locationDest: locationClass = (parsedJson \ "denorm_metadata" \ "destination_type").extract[String] match {
         case "cassandra" => {
           val cassCreds = (parsedJson \ "destination_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
@@ -93,11 +93,11 @@ object MetaDataFactory {
           (parsedJson \ "denorm_metadata" \ "destination_table").extract[CassandraLocation]
         }
         case "delta" => {
-          val extractedS3Creds: s3Credentials = (parsedJson \ "destination_credentials").extract[s3Credentials]
+          val extractedS3Creds: s3Credentials = (parsedJson \ "denorm_metadata" \ "destination_credentials").extract[s3Credentials]
           generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
             .set("fs.s3a.endpoint", extractedS3Creds.url)
-            .set("fs.s3a.access.key", extractedS3Creds.accessKey)
-            .set("fs.s3a.secret.key", extractedS3Creds.secretKey)
+            .set("fs.s3a.access.key", extractedS3Creds.access_key)
+            .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
 
           (parsedJson \ "denorm_metadata" \ "destination_table").extract[S3Location]
         }

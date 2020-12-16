@@ -2,39 +2,39 @@
   "process_type" : "Load",
 
   "source_type" : "s3",
-  "destination_type" : "cassandra",
+  "destination_type" : "delta",
 
   "load_metadata": {
 
-    "job_type" : "Initial",
-    "file_name": "",
+    "job_type" : "Incremental",
+    "file_name": "part-00001-de209d33-3050-4ae9-abc9-6b5656e52263-c000.tar.xz",
 
     "source_table" : {
-      "name" : "FACT_EQUIPMENT",
-      "id_key" : "EQ_KEY",
-      "bucket_name":"",
-      "suffix_path":""
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"obj",
+      "suffix_path":"QWERTY"
     },
 
     "destination_table" : {
-      "name" : "fact_equipment",
-      "id_key" : "eq_key",
-      "bucket_name":"",
-      "suffix_path":""
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"obj",
+      "suffix_path":"UIOP"
     },
 
     "source_credentials" : {
-      "access_key" : "sa",
-      "secret_key" : "A@radical1996",
-      "url" : "s"
+      "url" : "s3.nl-ams.scw.cloud",
+      "access_key" : "$S3_KEY",
+      "secret_key" : "$S3_SECRET"
     },
 
     "destination_credentials" : {
-      "username" : "sa",
-      "password" : "A@radical1996",
-      "hostname" : "localhost",
-      "port" : 9042
+      "access_key" : "$S3_KEY",
+      "secret_key" : "$S3_SECRET",
+      "url" : "s3.nl-ams.scw.cloud"
     }
+
   },
 
   "denorm_metadata": {
@@ -45,14 +45,13 @@
     "destination_type" : "cassandra",
 
     "source_table" : {
-      "name" : "FACT_EQUIPMENT",
-      "id_key" : "EQ_KEY",
+      "tableName" : "FACT_EQUIPMENT",
       "bucket_name":"",
       "suffix_path":""
     },
 
     "destination_table" : {
-      "name" : "fact_equipment",
+      "tableName" : "fact_equipment",
       "id_key" : "eq_key",
       "bucket_name":"",
       "suffix_path":""
