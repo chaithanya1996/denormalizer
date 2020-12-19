@@ -45,6 +45,7 @@ object MetaDataFactory {
             .set("fs.s3a.endpoint", extractedS3Creds.url)
             .set("fs.s3a.access.key", extractedS3Creds.access_key)
             .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
+            .set("spark.databricks.delta.optimizeWrite.enabled","true")
 
           (parsedJson \ "load_metadata" \ "destination_table").extract[S3Location]
         }

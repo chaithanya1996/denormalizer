@@ -8,14 +8,17 @@ import scala.io.Source
 object LoadServiceApplication {
 
   def main(args:Array[String]): Unit ={
-    // Read Application configuration
-    //    val appConf:Config = ConfigFactory.load("denormjob.json");
-    val filePath = "/home/chaithanya/Documents/Projects/denormalizer/src/main/resources/denormjobV2.json"
-    val rawjsonString:String = Source.fromFile(filePath).getLines().mkString("\n")
+
+    //    val filePath = "/home/chaithanya/Documents/Projects/denormalizer/src/main/resources/denormjobV2.json"
+    val filePath = args(0)
+    val sourceFile = Source.fromFile(filePath)
+    val rawjsonString:String = sourceFile.getLines().mkString("\n")
     val jobMetadata:LoadMetaData = MetaDataFactory.getLoadMetadata(rawjsonString);
+
     // Reading Config from environment
     val loadService = LoadService(jobMetadata)
     loadService.execute()
+
     System.exit(0)
   }
 

@@ -21,4 +21,10 @@ object TableMapperConfig {
     }
   }
 
+  def getPartitionColName(sourceTable:String): String ={
+    sourceTable.toLowerCase match {
+      case "fact_workhistory" => "WH_START_DATE_ST"
+    }
+  }
+
 }

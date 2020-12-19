@@ -1,9 +1,11 @@
 package me.adapa.dlake.denomalizer.executioner
 
 import io.delta.tables.DeltaTable
+import me.adapa.dlake.denomalizer.config.TableMapperConfig.getPartitionColName
 import me.adapa.dlake.denomalizer.config.{DestinationType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.metadata.LoadMetaData
 import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
+import me.adapa.dlake.denomalizer.executioner.PartitionServce.repartitionDfMonth
 import org.apache.spark.sql.cassandra.DataFrameWriterWrapper
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -51,13 +53,14 @@ object LoadService {
               .save();
           }
 
-          case DestinationType.delta =>
+          case DestinationType.delta => {
             sparkDataFrameToWrite.write
               .format("delta")
+              .partitionBy("_partition_key")
               .mode(SaveMode.Overwrite)
               .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
 
-
+          }
         }
 
       case SparkJobType.Incremental => {
@@ -80,7 +83,7 @@ object LoadService {
           case DestinationType.delta => {
             val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
             currentDeltaTable.as("currentDelta")
-              .merge(sparkDataFrameToWrite.as("sparkDf"), s"sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
+              .merge(sparkDataFrameToWrite.as("sparkDf"), s"sparkDf._partition_key = currentDelta._partition_key and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
               .whenMatched
               .updateAll
               .whenNotMatched
@@ -90,8 +93,6 @@ object LoadService {
         }
       }
     }
-
-
   }
 
 }
@@ -109,8 +110,9 @@ class LoadService(jobMetadata: LoadMetaData)  {
     //TODO Partition Support for Spark Data
 
     val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
-    sourceRawDf.printSchema()
-    writerService(sourceRawDf,jobMetadata,sparkSessionBuiltObject)
+    val sourceRepartionsdDf: DataFrame = repartitionDfMonth(sourceRawDf,getPartitionColName(jobMetadata.sourceLocationInfo.getTableName))
+    sourceRepartionsdDf.printSchema()
+    writerService(sourceRepartionsdDf,jobMetadata,sparkSessionBuiltObject)
 
     sparkSessionBuiltObject.stop()
   }
