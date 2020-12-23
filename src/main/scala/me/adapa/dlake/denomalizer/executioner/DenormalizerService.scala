@@ -3,7 +3,7 @@ package me.adapa.dlake.denomalizer.executioner
 import java.util.Properties
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
-import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType}
+import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.locationClass
 import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
 import me.adapa.dlake.denomalizer.executioner.DenormalizerService.readerService
@@ -61,27 +61,56 @@ object DenormalizerService{
 
   def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: DenormMetaData): Unit = {
 
-    jobMetadata.destinationType match {
+    jobMetadata.sparkJobType match {
+      case SparkJobType.Initial  => {
+        jobMetadata.destinationType match {
 
-      case DestinationType.cassandra => {
+          case DestinationType.cassandra => {
 
-        // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
+            // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
 
-        val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
+            val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
 
-        sparkDataFrameToWriteRenamed.write
-          .cassandraFormat
-          .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
-          .option("table", jobMetadata.destLocationInfo.getTableName)
-          .mode(SaveMode.Append)
-          .save();
+            sparkDataFrameToWriteRenamed.write
+              .cassandraFormat
+              .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
+              .option("table", jobMetadata.destLocationInfo.getTableName)
+              .mode(SaveMode.Overwrite)
+              .save();
+          }
+          case DestinationType.delta =>
+            sparkDataFrameToWrite.write
+              .format("delta")
+              .mode(SaveMode.Overwrite)
+              .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
+        }
+
       }
-      case DestinationType.delta =>
-        sparkDataFrameToWrite.write
-          .format("delta")
-          .mode(SaveMode.Append)
-          .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
+      case SparkJobType.Incremental => {
+        jobMetadata.destinationType match {
+
+          case DestinationType.cassandra => {
+
+            // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
+
+            val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
+
+            sparkDataFrameToWriteRenamed.write
+              .cassandraFormat
+              .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
+              .option("table", jobMetadata.destLocationInfo.getTableName)
+              .mode(SaveMode.Append)
+              .save();
+          }
+          case DestinationType.delta =>
+            sparkDataFrameToWrite.write
+              .format("delta")
+              .mode(SaveMode.Append)
+              .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
+        }
+      }
     }
+
   }
 }
 
