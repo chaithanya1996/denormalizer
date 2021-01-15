@@ -86,13 +86,12 @@ object LoadService {
             val deltaTablePartitionKey = getIncomingPartitionKeys(sparkDataFrameToWrite,"_partition_key")
 
             deltaTablePartitionKey.foreach(parKey => currentDeltaTable.as("currentDelta")
-              .merge(sparkDataFrameToWrite.as("sparkDf"), s"currentDelta._partition_key = ${parKey} and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
+              .merge(sparkDataFrameToWrite.filter(col("_partition_key") === parKey ).as("sparkDf"), s"currentDelta._partition_key = ${parKey} and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
               .whenMatched
               .updateAll
               .whenNotMatched
               .insertAll
               .execute())
-
           }
         }
       }
