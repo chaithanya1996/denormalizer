@@ -1,0 +1,73 @@
+{
+  "process_type" : "Load",
+
+  "source_type" : "s3",
+  "destination_type" : "delta",
+
+  "load_metadata": {
+
+    "job_type" : "Initial",
+    "file_name": "part-00001-de209d33-3050-4ae9-abc9-6b5656e52263-c000.json.gz",
+
+    "source_table" : {
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"assets",
+      "suffix_path":"aa_replica"
+    },
+
+    "destination_table" : {
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"assets",
+      "suffix_path":"load"
+    },
+
+    "source_credentials" : {
+      "url" : "192.168.0.68:9000",
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin"
+    },
+
+    "destination_credentials" : {
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin",
+      "url" : "192.168.0.68:9000"
+    }
+  },
+
+  "denorm_metadata": {
+
+    "job_type" : "Initial",
+
+    "source_type" : "delta",
+    "destination_type" : "cassandra",
+
+    "source_table" : {
+      "tableName" : "FACT_EQUIPMENT",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "destination_table" : {
+      "tableName" : "fact_equipment",
+      "id_key" : "eq_key",
+      "bucket_name":"",
+      "suffix_path":""
+    },
+
+    "source_credentials" : {
+      "url" : "s3.ap-south-1.amazonaws.com",
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin"
+    },
+
+    "destination_credentials" : {
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin",
+      "url" : "s3.ap-south-1.amazonaws.com"
+    }
+
+  }
+
+}
