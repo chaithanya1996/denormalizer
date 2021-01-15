@@ -6,6 +6,7 @@ import me.adapa.dlake.denomalizer.config.{DestinationType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.metadata.LoadMetaData
 import me.adapa.dlake.denomalizer.executioner.LoadService.{readerService, writerService}
 import me.adapa.dlake.denomalizer.executioner.PartitionServce.repartitionDfMonth
+import me.adapa.dlake.denomalizer.executioner.SparkUtility.getIncomingPartitionKeys
 import org.apache.spark.sql.cassandra.DataFrameWriterWrapper
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -29,7 +30,7 @@ object LoadService {
         sparkSessionBuiltObject.read
           .format("json")
           .option("header", value = true)
-          .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
+          .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}").cache();
 
       }
     }
@@ -82,13 +83,16 @@ object LoadService {
 
           case DestinationType.delta => {
             val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
-            currentDeltaTable.as("currentDelta")
-              .merge(sparkDataFrameToWrite.as("sparkDf"), s"sparkDf._partition_key = currentDelta._partition_key and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
+            val deltaTablePartitionKey = getIncomingPartitionKeys(sparkDataFrameToWrite,"_partition_key")
+
+            deltaTablePartitionKey.foreach(parKey => currentDeltaTable.as("currentDelta")
+              .merge(sparkDataFrameToWrite.as("sparkDf"), s"currentDelta._partition_key = ${parKey} and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
               .whenMatched
               .updateAll
               .whenNotMatched
               .insertAll
-              .execute()
+              .execute())
+
           }
         }
       }

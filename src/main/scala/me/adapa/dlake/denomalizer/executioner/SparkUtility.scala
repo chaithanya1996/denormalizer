@@ -12,4 +12,11 @@ object SparkUtility {
     inputDf.select(columnNamesZipped: _*)
   }
 
+  // TODO Need to Generalize if needed
+  def getIncomingPartitionKeys(incomingDf:DataFrame,colName:String):List[Int] ={
+    val listOfKeys = incomingDf.select(colName).distinct().rdd.map(r => r(0).asInstanceOf[Int]).collect().toList
+    println("List of KEYS::::" + listOfKeys)
+    return listOfKeys
+  }
+
 }
