@@ -55,12 +55,20 @@ object LoadService {
           }
 
           case DestinationType.delta => {
-            sparkDataFrameToWrite.write
-              .format("delta")
-              .partitionBy("_partition_key")
-              .mode(SaveMode.Overwrite)
-              .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}");
 
+            if("_master_".equals(getPartitionColName(jobMetadata.sourceLocationInfo.getTableName))){
+              sparkDataFrameToWrite.write
+                .format("delta")
+                .mode(SaveMode.Overwrite)
+                .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
+
+            }else{
+              sparkDataFrameToWrite.write
+                .format("delta")
+                .partitionBy("_partition_key")
+                .mode(SaveMode.Overwrite)
+                .save(s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
+            }
           }
         }
 
@@ -82,16 +90,28 @@ object LoadService {
           }
 
           case DestinationType.delta => {
-            val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
-            val deltaTablePartitionKey = getIncomingPartitionKeys(sparkDataFrameToWrite,"_partition_key")
 
-            deltaTablePartitionKey.foreach(parKey => currentDeltaTable.as("currentDelta")
-              .merge(sparkDataFrameToWrite.filter(col("_partition_key") === parKey ).as("sparkDf"), s"currentDelta._partition_key = ${parKey} and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
-              .whenMatched
-              .updateAll
-              .whenNotMatched
-              .insertAll
-              .execute())
+            if("_master_".equals(getPartitionColName(jobMetadata.sourceLocationInfo.getTableName))){
+              val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
+              currentDeltaTable.as("currentDelta")
+                .merge(sparkDataFrameToWrite.as("sparkDf"), s"sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
+                .whenMatched
+                .updateAll
+                .whenNotMatched
+                .insertAll
+                .execute()
+            }else{
+              val currentDeltaTable = DeltaTable.forPath(sparkSessionBuiltObject, s"s3a://${jobMetadata.destLocationInfo.getGroupName}/${jobMetadata.destLocationInfo.getSuffix}/${jobMetadata.destLocationInfo.getTableName}")
+              val deltaTablePartitionKey = getIncomingPartitionKeys(sparkDataFrameToWrite, "_partition_key")
+
+              deltaTablePartitionKey.foreach(parKey => currentDeltaTable.as("currentDelta")
+                .merge(sparkDataFrameToWrite.filter(col("_partition_key") === parKey).as("sparkDf"), s"currentDelta._partition_key = ${parKey} and sparkDf.${jobMetadata.sourceLocationInfo.getKey} = currentDelta.${jobMetadata.destLocationInfo.getKey}")
+                .whenMatched
+                .updateAll
+                .whenNotMatched
+                .insertAll
+                .execute())
+            }
           }
         }
       }
@@ -113,9 +133,10 @@ class LoadService(jobMetadata: LoadMetaData)  {
     //TODO Partition Support for Spark Data
 
     val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
-    val sourceRepartionsdDf: DataFrame = repartitionDfMonth(sourceRawDf,getPartitionColName(jobMetadata.sourceLocationInfo.getTableName))
-    sourceRepartionsdDf.printSchema()
-    writerService(sourceRepartionsdDf,jobMetadata,sparkSessionBuiltObject)
+//    val partitionColname = getPartitionColName(jobMetadata.sourceLocationInfo.getTableName)
+//    val sourceRepartionsdDf: DataFrame = repartitionDfMonth(sourceRawDf,partitionColname)
+//    sourceRepartionsdDf.printSchema()
+    writerService(sourceRawDf,jobMetadata,sparkSessionBuiltObject)
 
     sparkSessionBuiltObject.stop()
   }
