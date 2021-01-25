@@ -6,7 +6,7 @@ import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.locationClass
 import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
-import me.adapa.dlake.denomalizer.executioner.DenormalizerService.readerService
+import me.adapa.dlake.denomalizer.executioner.DenormalizerService.{readerService, writerService}
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
@@ -25,9 +25,9 @@ object DenormalizerService{
         .load();
 
       case SourceType.delta => sparkSessionBuiltObject.read
-        .format("delta")
-        .option("header", value = true)
-        .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceLocationInfo.getTableName}");
+          .format("delta")
+          .option("header", value = true)
+          .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}");
 
 //      case SourceType.jdbc => {
 //        val jdbcConnectionProperties = new Properties()
@@ -52,7 +52,8 @@ object DenormalizerService{
 
     val relatedTablesList = getRelatedTables(jobMetadata.sourceLocationInfo.getTableName);
     def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_);
-    val lookupDFList = relatedTablesList.map( tName => singleTableReaderTemplate(tName))
+    val lookupDFList:List[DataFrame] = relatedTablesList.map( tName => {
+      singleTableReaderTemplate(tName)})
     val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceLocationInfo.getTableName)
     val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList);
 
@@ -130,7 +131,7 @@ class DenormalizerService(jobMetadata: DenormMetaData)  {
 
     val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
     sourceRawDf.printSchema()
-    // writerService(sourceRawDf,jobMetadata)
+     writerService(sourceRawDf,jobMetadata)
 
     sparkSessionBuiltObject.stop()
   }

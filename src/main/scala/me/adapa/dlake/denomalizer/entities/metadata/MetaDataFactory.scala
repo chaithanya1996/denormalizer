@@ -14,7 +14,7 @@ object MetaDataFactory {
     implicit val formats: DefaultFormats.type = DefaultFormats
 
       val generatedSparkConf: SparkConf = new SparkConf(true)
-      val locationSource: locationClass = (parsedJson \ "source_type").extract[String] match {
+      val locationTableSource: locationClass = (parsedJson \ "source_type").extract[String] match {
         case "s3" => {
 
           val extractedS3Creds: s3Credentials = (parsedJson \ "load_metadata"  \ "source_credentials").extract[s3Credentials]
@@ -30,7 +30,7 @@ object MetaDataFactory {
         case _ => throw new Exception("unknown source_type in json")
       }
 
-      val locationDest: locationClass = (parsedJson \ "destination_type").extract[String] match {
+      val locationTableDest: locationClass = (parsedJson \ "destination_type").extract[String] match {
         case "cassandra" => {
           val cassCreds = (parsedJson \ "load_metadata" \ "source_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
@@ -54,7 +54,7 @@ object MetaDataFactory {
       val jobType = (parsedJson \ "load_metadata" \ "job_type").extract[String]
       val destinationType = (parsedJson \ "destination_type" ).extract[String]
       val fileName = (parsedJson \ "load_metadata" \ "file_name").extract[String]
-      LoadMetaData(SparkJobType.withName(jobType), fileName, DestinationType.withName(destinationType),locationSource, locationDest, generatedSparkConf)
+      LoadMetaData(SparkJobType.withName(jobType), fileName, DestinationType.withName(destinationType),locationTableSource, locationTableDest, generatedSparkConf)
 
   }
 
@@ -63,7 +63,9 @@ object MetaDataFactory {
     implicit val formats: DefaultFormats.type = DefaultFormats
 
       val generatedSparkConf: SparkConf = new SparkConf(true)
-      val locationSource: locationClass = (parsedJson \ "source_type").extract[String] match {
+
+
+      val locationTableSource: locationClass = (parsedJson \ "source_type").extract[String] match {
 
         case "cassandra" => {
           val cassCreds = (parsedJson \ "denorm_metadata" \ "source_credentials").extract[cassandraCredentials]
@@ -71,8 +73,9 @@ object MetaDataFactory {
             .set("spark.cassandra.auth.username", cassCreds.username)
             .set("spark.cassandra.auth.password", cassCreds.password)
 
-          (parsedJson \ "load_metadata" \ "source_table").extract[CassandraLocation]
+          (parsedJson \ "denorm_metadata" \ "source_table").extract[CassandraLocation]
         }
+
         case "delta" => {
           val extractedS3Creds: s3Credentials = (parsedJson \ "denorm_metadata" \ "source_credentials").extract[s3Credentials]
           generatedSparkConf.set("fs.s3a.connection.ssl.enabled", value = "false")
@@ -80,11 +83,11 @@ object MetaDataFactory {
             .set("fs.s3a.access.key", extractedS3Creds.access_key)
             .set("fs.s3a.secret.key", extractedS3Creds.secret_key)
 
-          (parsedJson \ "load_metadata" \ "source_table").extract[S3Location]
+          (parsedJson \ "denorm_metadata" \ "source_table").extract[S3Location]
         }
       }
 
-      val locationDest: locationClass = (parsedJson \ "denorm_metadata" \ "destination_type").extract[String] match {
+      val locationTableDest: locationClass = (parsedJson  \ "destination_type").extract[String] match {
         case "cassandra" => {
           val cassCreds = (parsedJson \ "destination_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
@@ -105,8 +108,8 @@ object MetaDataFactory {
       }
 
       val jobType = SparkJobType.withName((parsedJson \ "denorm_metadata" \ "job_type").extract[String])
-      val sourceType = SourceType.withName((parsedJson \ "denorm_metadata" \ "job_type").extract[String])
-      val destinationType = DestinationType.withName((parsedJson \ "denorm_metadata" \ "job_type").extract[String])
-      DenormMetaData(jobType,sourceType,destinationType, locationSource, locationDest, generatedSparkConf)
+      val sourceType = SourceType.withName((parsedJson  \ "source_type").extract[String])
+      val destinationType = DestinationType.withName((parsedJson \ "destination_type").extract[String])
+      DenormMetaData(jobType,sourceType,destinationType, locationTableSource, locationTableDest, generatedSparkConf)
   }
 }

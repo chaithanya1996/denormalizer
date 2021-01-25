@@ -11,12 +11,9 @@ object TableMapperConfig {
         "DIM_WH_EVENT_TYPE",
         "DIM_WH_PRIORITY",
         "DIM_EQ_CRITICALITY",
-        "FACT_EQUIPMENT",
-        "DIM_EQ_CRITICALITY",
         "DIM_EQ_MFR",
         "EQ_MODEL_NO",
-        "TAXONOMY_HIERARCHY",
-        "FACT_EQ_DOWNTIME_EVENTS")
+        "TAXONOMY_HIERARCHY")
       case _ => List[String]()
     }
   }

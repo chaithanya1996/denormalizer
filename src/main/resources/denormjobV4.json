@@ -4,23 +4,25 @@
   "source_type" : "delta",
   "destination_type" : "delta",
 
-  "load_metadata": {
+  "denorm_metadata": {
 
     "job_type" : "Initial",
-    "file_name": "part-00001-de209d33-3050-4ae9-abc9-6b5656e52263-c000.json.gz",
+
+    "source_type" : "delta",
+    "destination_type" : "delta",
 
     "source_table" : {
       "table_name" : "FACT_WORKHISTORY",
       "table_key" : "WH_KEY",
       "bucket_name":"assets",
-      "suffix_path":"aa_replica"
+      "suffix_path":"load"
     },
 
     "destination_table" : {
       "table_name" : "FACT_WORKHISTORY",
       "table_key" : "WH_KEY",
       "bucket_name":"assets",
-      "suffix_path":"load"
+      "suffix_path":"denorm"
     },
 
     "source_credentials" : {
@@ -34,5 +36,7 @@
       "secret_key" : "minioadmin",
       "url" : "192.168.0.68:9000"
     }
+
   }
+
 }
