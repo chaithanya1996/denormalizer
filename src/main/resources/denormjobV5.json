@@ -1,0 +1,38 @@
+{
+  "process_type" : "Denorm",
+
+  "source_type" : "s3",
+  "destination_type" : "cassandra",
+
+  "load_metadata": {
+
+    "job_type" : "Initial",
+    "file_name": "FACT_WORKHISTORY.json",
+
+    "source_table" : {
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"assets",
+      "suffix_path":"aa_replica"
+    },
+
+    "destination_table" : {
+      "table_name" : "fact_workhistory",
+      "table_key" : "wh_key",
+      "keyspace_name":"replica"
+    },
+
+    "source_credentials" : {
+      "url" : "127.0.0.1:9000",
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin"
+    },
+
+    "destination_credentials" : {
+      "username" : "cassandra",
+      "password" : "cassandra",
+      "hostname" : "10.181.212.127",
+      "port" : 9042
+    }
+  }
+}

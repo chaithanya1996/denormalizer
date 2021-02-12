@@ -21,7 +21,7 @@ object LoadService {
       case SparkJobType.Initial => {
        sparkSessionBuiltObject.read
           .format("json")
-          .option("header", value = true)
+          .option("multiLine", true)
           .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}");
       }
 
@@ -29,7 +29,7 @@ object LoadService {
       case SparkJobType.Incremental => {
         sparkSessionBuiltObject.read
           .format("json")
-          .option("header", value = true)
+          .option("multiLine", true)
           .load(s"s3a://${jobMetadata.sourceLocationInfo.getGroupName}/${jobMetadata.sourceLocationInfo.getSuffix}/${jobMetadata.sourceLocationInfo.getTableName}/${jobMetadata.fileName}").cache();
 
       }
@@ -43,9 +43,11 @@ object LoadService {
         jobMetadata.destinationType match {
           case DestinationType.cassandra => {
 
+            sparkDataFrameToWrite.printSchema()
             // TODO Implement A source to Destination Colum Mapper for load and implementation for denorm
             val sparkDataFrameToWriteRenamed = SparkUtility.ConvertDataframeColToLowerCase(sparkDataFrameToWrite)
 
+            sparkDataFrameToWriteRenamed.printSchema()
             sparkDataFrameToWriteRenamed.write
               .cassandraFormat
               .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
