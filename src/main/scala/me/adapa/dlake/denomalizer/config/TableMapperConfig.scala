@@ -1,5 +1,7 @@
 package me.adapa.dlake.denomalizer.config
 
+import me.adapa.dlake.denomalizer.entities.JoinPathInfo
+
 object TableMapperConfig {
 
   def getRelatedTables(sourceTable:String): List[String] ={
@@ -17,6 +19,15 @@ object TableMapperConfig {
       case _ => List[String]()
     }
   }
+
+  def getRelatedTableJoinPath(sourceTable: String):JoinPathInfo = sourceTable match {
+
+    case "fact_workhistory" => JoinPathInfo("fact_workhistory",List("DIM_FAILURE_CODE", "CORPORATION_HIERARCHY", "DIM_WH_BREAKDOWN", "DIM_WH_DETECTION_METHOD", "DIM_WH_EVENT_TYPE", "DIM_WH_PRIORITY", "DIM_EQ_CRITICALITY", "DIM_EQ_MFR", "EQ_MODEL_NO", "TAXONOMY_HIERARCHY")
+      ,List())
+    case _ => JoinPathInfo("",List[String](),List[String]())
+
+  }
+
 
   // Ideally This should be replcaed with DB table
   def getPartitionColName(sourceTable:String): String ={

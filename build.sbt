@@ -11,8 +11,8 @@ libraryDependencies += "io.delta" %% "delta-core" % "0.7.0"
 libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "3.0.0"
 libraryDependencies += "org.apache.hadoop" % "hadoop-aws" % "3.0.0"
 
-
-//libraryDependencies += "com.typesafe" % "config" % "1.4.1"
+libraryDependencies += "org.postgresql" % "postgresql" % "42.2.18"
+libraryDependencies += "com.typesafe" % "config" % "1.4.1"
 //libraryDependencies += "com.amazonaws" % "aws-java-sdk" % "1.10.6"
 //libraryDependencies += "com.microsoft.sqlserver" % "mssql-jdbc" % "8.2.2.jre11"
 libraryDependencies += "org.json4s" %% "json4s-native" % "3.6.10"

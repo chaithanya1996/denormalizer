@@ -28,17 +28,6 @@ object DenormalizerService{
           .format("delta")
           .option("header", value = true)
           .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}");
-
-//      case SourceType.jdbc => {
-//        val jdbcConnectionProperties = new Properties()
-//        jdbcConnectionProperties.setProperty("user", "sa")
-//        jdbcConnectionProperties.setProperty("password", "A@adapa1996")
-//
-//        sparkSessionBuiltObject.read
-//          .jdbc(s"jdbc:sqlserver://192.168.0.68:1433;databaseName=AssetAnswers_Demo",
-//            sourceTable,
-//            jdbcConnectionProperties)
-//      }
     }
   }
 
