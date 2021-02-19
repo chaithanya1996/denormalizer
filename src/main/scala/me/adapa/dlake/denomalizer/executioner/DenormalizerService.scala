@@ -1,5 +1,7 @@
 package me.adapa.dlake.denomalizer.executioner
 
+import com.typesafe.config.Config
+
 import java.util.Properties
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
@@ -7,14 +9,16 @@ import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobT
 import me.adapa.dlake.denomalizer.entities.locationClass
 import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
 import me.adapa.dlake.denomalizer.executioner.DenormalizerService.{readerService, writerService}
+import me.adapa.dlake.denomalizer.util.DBUtil
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 import scala.annotation.tailrec
 
 object DenormalizerService{
 
-  def apply(jobMetadata: DenormMetaData): DenormalizerService = new DenormalizerService(jobMetadata)
+  def apply(jobMetadata: DenormMetaData,appAdminConfig:Config): DenormalizerService = new DenormalizerService(jobMetadata,appAdminConfig)
 
   def ReadSingleTable(sourceType: SourceType,sourceLocationInfo: locationClass, sparkSessionBuiltObject:SparkSession) (sourceTable:String):DataFrame = {
     sourceType match {
@@ -31,21 +35,62 @@ object DenormalizerService{
     }
   }
 
-  @tailrec
-  def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame]): DataFrame = lookupTable match {
-    case Nil => baseTable
-    case headDf :: tailDfs => denormJoinTables(baseTable.join(headDf),tailDfs)
+  def ReadSingleTableCols(sourceType: SourceType,sourceLocationInfo: locationClass, sparkSessionBuiltObject:SparkSession) (sourceTable:String,colsToFilter:List[String]= List[String]()):DataFrame = {
+    sourceType match {
+      case SourceType.cassandra => {
+        if(colsToFilter.isEmpty){
+          sparkSessionBuiltObject.read
+            .cassandraFormat
+            .option("keyspace", sourceLocationInfo.getGroupName)
+            .option("table", sourceLocationInfo.getTableName)
+            .load()
+        }else{
+          sparkSessionBuiltObject.read
+            .cassandraFormat
+            .option("keyspace", sourceLocationInfo.getGroupName)
+            .option("table", sourceLocationInfo.getTableName)
+            .load().select(colsToFilter.map(col): _*)
+        }
+      }
+      case SourceType.delta => {
+        if(colsToFilter.isEmpty){
+            sparkSessionBuiltObject.read
+              .format("delta")
+              .option("header", value = true)
+              .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}")
+          }else{
+            sparkSessionBuiltObject.read
+              .format("delta")
+              .option("header", value = true)
+              .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}")
+              .select(colsToFilter.map(col): _*)}
+
+      };
+    }
   }
 
-  def readerService(jobMetadata: DenormMetaData, sparkSessionBuiltObject:SparkSession): DataFrame = {
+  @tailrec
+  def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame] , joinOnCols:List[String]): DataFrame = lookupTable match {
+    case Nil => baseTable
+    case headDf :: tailDfs => {
+      val currrentJoinCol :: tailJoinCol = joinOnCols;
+      denormJoinTables(baseTable.join(headDf,usingColumn = currrentJoinCol),tailDfs,tailJoinCol)
+    }
+  }
 
-    val relatedTablesList = getRelatedTables(jobMetadata.sourceLocationInfo.getTableName);
-    def singleTableReaderTemplate = ReadSingleTable(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_);
-    val lookupDFList:List[DataFrame] = relatedTablesList.map( tName => {
-      singleTableReaderTemplate(tName)})
-    val sourceBaseTableDF = singleTableReaderTemplate(jobMetadata.sourceLocationInfo.getTableName)
-    val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList);
+  def readerService(jobMetadata: DenormMetaData, sparkSessionBuiltObject:SparkSession,appAdminConfig:Config): DataFrame = {
 
+    val relatedJoinCOnfigFromDB = DBUtil.getAppJoinforTable(jobMetadata.sourceLocationInfo.getTableName,appAdminConfig)
+    def singleTableReaderWithFilterColumnTemplate = ReadSingleTableCols(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_,_);
+    val zippedLookupTableProperties = relatedJoinCOnfigFromDB.lookupTable.zip(relatedJoinCOnfigFromDB.joinColumnsList)
+
+    val lookupDFList:List[DataFrame] = zippedLookupTableProperties.map(tName => {
+      val listofCols = tName._2.strip().split(",").toList
+      singleTableReaderWithFilterColumnTemplate(tName._1,listofCols)
+    })
+
+    val sourceBaseTableDF = singleTableReaderWithFilterColumnTemplate(jobMetadata.sourceLocationInfo.getTableName,List[String]())
+    val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList,relatedJoinCOnfigFromDB.joinColumnsList);
     return joinedTables;
   }
 
@@ -104,7 +149,7 @@ object DenormalizerService{
   }
 }
 
-class DenormalizerService(jobMetadata: DenormMetaData)  {
+class DenormalizerService(jobMetadata: DenormMetaData,appAdminConfig:Config)  {
 
   val sparkSessionBuiltObject: SparkSession = SparkSession.builder.config(jobMetadata.sparkConf)
     .master("local[*]")
@@ -118,7 +163,7 @@ class DenormalizerService(jobMetadata: DenormMetaData)  {
     *  Partition Support for Spark Data
     * */
 
-    val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject)
+    val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject,appAdminConfig)
     sourceRawDf.printSchema()
      writerService(sourceRawDf,jobMetadata)
 

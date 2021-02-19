@@ -20,7 +20,7 @@ object DenormApplication {
     val jobMetadata = MetaDataFactory.getDenormMetadata(rawjsonString);
 
     //Reading Config from environment
-    val denormService = DenormalizerService(jobMetadata)
+    val denormService = DenormalizerService(jobMetadata,appAdminConfig)
     denormService.execute()
 
       System.exit(0)

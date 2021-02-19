@@ -10,7 +10,7 @@ object DBUtil {
   @throws[BaseTableNotConfiguredInDB]
   def getAppJoinforTable(basetableName:String,adminConfig:Config):JoinPathInfo = {
     val jdbcQuery =
-      """SELECT base_table, join_table_list, table_column_list
+      """SELECT base_table, join_table_list, join_on_col_list, table_column_list
          |FROM ? where base_table = ?""".stripMargin
 
 
@@ -29,6 +29,7 @@ object DBUtil {
 
       val joinPathInfo:JoinPathInfo = JoinPathInfo(rs.getString("base_table"),
         rs.getArray("join_table_list").asInstanceOf[Array[String]].toList,
+        rs.getArray("join_on_col_list").asInstanceOf[Array[String]].toList,
         rs.getArray("table_column_list").asInstanceOf[Array[String]].toList)
 
       rs.close()
