@@ -80,12 +80,12 @@ object DenormalizerService{
 
   def readerService(jobMetadata: DenormMetaData, sparkSessionBuiltObject:SparkSession,appAdminConfig:Config): DataFrame = {
 
-    val relatedJoinCOnfigFromDB = DBUtil.getAppJoinforTable(jobMetadata.sourceLocationInfo.getTableName,appAdminConfig)
+    val relatedJoinCOnfigFromDB = DBUtil.getAppJoinforTable(jobMetadata.sourceLocationInfo.getTableName.toLowerCase(),appAdminConfig)
     def singleTableReaderWithFilterColumnTemplate = ReadSingleTableCols(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_,_);
     val zippedLookupTableProperties = relatedJoinCOnfigFromDB.lookupTable.zip(relatedJoinCOnfigFromDB.joinColumnsList)
 
     val lookupDFList:List[DataFrame] = zippedLookupTableProperties.map(tName => {
-      val listofCols = tName._2.strip().split(",").toList
+      val listofCols = tName._2.trim().split(",").toList
       singleTableReaderWithFilterColumnTemplate(tName._1,listofCols)
     })
 
