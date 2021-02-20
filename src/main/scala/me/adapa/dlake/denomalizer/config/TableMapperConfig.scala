@@ -1,7 +1,5 @@
 package me.adapa.dlake.denomalizer.config
 
-import me.adapa.dlake.denomalizer.entities.JoinPathInfo
-
 object TableMapperConfig {
 
   def getRelatedTables(sourceTable:String): List[String] ={

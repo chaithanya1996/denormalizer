@@ -78,19 +78,9 @@ object DenormalizerService{
     }
   }
 
-  @tailrec @Deprecated
-  def denormJoinTablesV2(baseTable:DataFrame, lookupList:List[String], lookupmap: Map[String,String] , readerFuncTemplate:(String, List[String]) => DataFrame, colLookMap: Map[String,List[String]] ): DataFrame = lookupList match {
-    case Nil => baseTable
-    case headDf :: tailDfs => {
-      val selColforLookup = colLookMap.get(headDf)
-      val retrievedLookupTB = readerFuncTemplate(headDf,selColforLookup.get)
-      denormJoinTablesV2(baseTable.join(retrievedLookupTB,usingColumn = lookupmap.get(headDf).get),tailDfs,lookupmap,readerFuncTemplate,colLookMap)
-    }
-  }
-
   def readerService(jobMetadata: DenormMetaData, sparkSessionBuiltObject:SparkSession,appAdminConfig:Config): DataFrame = {
 
-    val relatedJoinCOnfigFromDB:TableConfig = DBUtil.getAppJoinforTable3(jobMetadata.sourceLocationInfo.getTableName.toLowerCase(),appAdminConfig)
+    val relatedJoinCOnfigFromDB:TableConfig = DBUtil.getAppJoinforTable(jobMetadata.sourceLocationInfo.getTableName.toLowerCase(),appAdminConfig)
 
     def singleTableReaderWithFilterColumnTemplate: (String, List[String]) => DataFrame = ReadSingleTableCols(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_,_);
 
