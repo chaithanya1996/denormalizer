@@ -1,10 +1,7 @@
 package me.adapa.dlake.denomalizer.executioner
 
 import com.typesafe.config.Config
-
-import java.util.Properties
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
-import me.adapa.dlake.denomalizer.config.TableMapperConfig.getRelatedTables
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.{TableConfig, locationClass}
 import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
@@ -35,46 +32,63 @@ object DenormalizerService{
     }
   }
 
-  def ReadSingleTableCols(sourceType: SourceType,sourceLocationInfo: locationClass, sparkSessionBuiltObject:SparkSession) (sourceTable:String,colsToFilter:List[String]= List[String]()):DataFrame = {
+  def ReadSingleTableCols(sourceType: SourceType,sourceLocationInfo: locationClass, sparkSessionBuiltObject:SparkSession) (sourceTable:String,colsToFilter:String=""):DataFrame = {
     sourceType match {
       case SourceType.cassandra => {
         if(colsToFilter.isEmpty){
-          sparkSessionBuiltObject.read
+          return sparkSessionBuiltObject.read
             .cassandraFormat
             .option("keyspace", sourceLocationInfo.getGroupName)
             .option("table", sourceLocationInfo.getTableName)
             .load()
         }else{
-          sparkSessionBuiltObject.read
+          return sparkSessionBuiltObject.read
             .cassandraFormat
             .option("keyspace", sourceLocationInfo.getGroupName)
             .option("table", sourceLocationInfo.getTableName)
-            .load().select(colsToFilter.map(col): _*)
+            .load().select(colsToFilter.split(":").map(col): _*)
         }
       }
       case SourceType.delta => {
         if(colsToFilter.isEmpty){
-            sparkSessionBuiltObject.read
+          return sparkSessionBuiltObject.read
               .format("delta")
               .option("header", value = true)
               .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}")
           }else{
-            sparkSessionBuiltObject.read
+          return sparkSessionBuiltObject.read
               .format("delta")
               .option("header", value = true)
               .load(s"s3a://${sourceLocationInfo.getGroupName}/${sourceLocationInfo.getSuffix}/${sourceTable}")
-              .select(colsToFilter.map(col): _*)}
-
+              .select(colsToFilter.split(":").map(col): _*)
+        }
       };
     }
   }
 
   @tailrec
-  def denormJoinTables(baseTable:DataFrame, lookupTable: List[DataFrame] , joinOnCols:List[String]): DataFrame = lookupTable match {
-    case Nil => baseTable
+  def denormJoinTables(baseTable:DataFrame,
+                       lookupTable: List[String] ,
+                       joinOnCols:List[String],
+                       selectOnCols:List[String],
+                       readerTemplateFunc:(String,String) => DataFrame): DataFrame = lookupTable match {
+
+    case Nil => {
+      baseTable
+    }
     case headDf :: tailDfs => {
-      val currrentJoinCol :: tailJoinCol = joinOnCols;
-      denormJoinTables(baseTable.join(headDf,usingColumn = currrentJoinCol),tailDfs,tailJoinCol)
+      val currentSelCol :: tailSelCol = selectOnCols
+      val curColString = if(currentSelCol.trim.split("->").size == 1) "" else currentSelCol.trim.split("->")(1).trim
+//      println("+++++++++++++++++++++++++++++")
+//      println(currentSelCol,curColString)
+//      println("+++++++++++++++++++++++++++++")
+      val currrentJoinCol :: tailJoinCol = joinOnCols
+
+      denormJoinTables(baseTable.join(readerTemplateFunc(headDf,curColString),usingColumn = currrentJoinCol),
+        tailDfs,
+        tailJoinCol,
+        tailSelCol,
+        readerTemplateFunc)
     }
   }
 
@@ -82,16 +96,10 @@ object DenormalizerService{
 
     val relatedJoinCOnfigFromDB:TableConfig = DBUtil.getAppJoinforTable(jobMetadata.sourceLocationInfo.getTableName.toLowerCase(),appAdminConfig)
 
-    def singleTableReaderWithFilterColumnTemplate: (String, List[String]) => DataFrame = ReadSingleTableCols(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_,_);
+    def singleTableReaderWithFilterColumnTemplate: (String, String) => DataFrame = ReadSingleTableCols(jobMetadata.sourceType,jobMetadata.sourceLocationInfo,sparkSessionBuiltObject)(_,_);
 
-
-    val zippedLookupTableProperties = relatedJoinCOnfigFromDB.lookupTable.zip(relatedJoinCOnfigFromDB.selectColList)
-    val lookupDFList:List[DataFrame] = zippedLookupTableProperties.map(tName => {
-      singleTableReaderWithFilterColumnTemplate(tName._1,tName._2)
-    })
-
-    val sourceBaseTableDF = singleTableReaderWithFilterColumnTemplate(jobMetadata.sourceLocationInfo.getTableName,List[String]())
-    val joinedTables = denormJoinTables(sourceBaseTableDF,lookupDFList,relatedJoinCOnfigFromDB.joinColumnsList);
+    val sourceBaseTableDF = singleTableReaderWithFilterColumnTemplate(jobMetadata.sourceLocationInfo.getTableName,"")
+    val joinedTables = denormJoinTables(sourceBaseTableDF,relatedJoinCOnfigFromDB.lookupTable,relatedJoinCOnfigFromDB.joinColumnsList,relatedJoinCOnfigFromDB.selectColList,singleTableReaderWithFilterColumnTemplate);
     return joinedTables;
   }
 

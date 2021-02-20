@@ -11,14 +11,14 @@ import scala.collection.mutable
 object DBUtil {
 
   def parseSelectColumns(pgColArray:Array[String]):List[List[String]] = {
-      pgColArray.map(_.trim.split(",").toList).toList
+      pgColArray.map(_.trim.split(":").toList).toList
   }
 
   @throws[BadTableConfigException]
   def parseTableJoinCols2(string: String):(List[String],List[String]) = {
     val rawStringMaps = string.trim.split(",").map(x => x.trim.split("->"))
     val filteredRawMaps = for (arrMapSingle <- rawStringMaps if arrMapSingle.size == 2 ) yield arrMapSingle
-    (filteredRawMaps.map(x => x(0)).toList,filteredRawMaps.map(x => x(0)).toList)
+    (filteredRawMaps.map(x => x(0)).toList,filteredRawMaps.map(x => x(1)).toList)
   }
 
 
@@ -41,7 +41,7 @@ object DBUtil {
       val tablesAndColsTuple = parseTableJoinCols2(rs.getString("join_table_list"))
       tableConfigRecord = TableConfig(rs.getString("base_table"),
         tablesAndColsTuple._1,tablesAndColsTuple._2,
-        parseSelectColumns(rs.getArray("table_column_list").getArray.asInstanceOf[Array[String]]))
+        rs.getArray("table_column_list").getArray.asInstanceOf[Array[String]].toList)
     }
     tableConfigRecord
   }
