@@ -15,16 +15,6 @@ object DBUtil {
   }
 
   @throws[BadTableConfigException]
-  def parseTableJoinCols(string: String):mutable.Map[String,String] = {
-    val rawStringMaps = string.trim.split(",").map(x => x.trim.split("->"))
-    val filteredRawMaps = for (arrMapSingle <- rawStringMaps if arrMapSingle.size == 2 ) yield arrMapSingle
-    var mappedCols = mutable.HashMap[String, String]()
-    filteredRawMaps.foreach(x => mappedCols+= (x(0)->x(1)))
-    return mappedCols
-  }
-
-
-  @throws[BadTableConfigException]
   def parseTableJoinCols2(string: String):(List[String],List[String]) = {
     val rawStringMaps = string.trim.split(",").map(x => x.trim.split("->"))
     val filteredRawMaps = for (arrMapSingle <- rawStringMaps if arrMapSingle.size == 2 ) yield arrMapSingle
