@@ -18,7 +18,7 @@ object DBUtil {
   def parseTableJoinCols2(string: String):(List[String],List[String]) = {
     val rawStringMaps = string.trim.split(",").map(x => x.trim.split("->"))
     val filteredRawMaps = for (arrMapSingle <- rawStringMaps if arrMapSingle.size == 2 ) yield arrMapSingle
-    (filteredRawMaps.map(x => x(0)).toList,filteredRawMaps.map(x => x(1)).toList)
+    (filteredRawMaps.map(x => x(0).trim).toList,filteredRawMaps.map(x => x(1).trim).toList)
   }
 
 
