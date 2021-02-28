@@ -91,7 +91,7 @@ object MetaDataFactory {
 
       val locationTableDest: locationClass = (parsedJson  \ "destination_type").extract[String] match {
         case "cassandra" => {
-          val cassCreds = (parsedJson \ "destination_credentials").extract[cassandraCredentials]
+          val cassCreds = (parsedJson \ "denorm_metadata" \ "destination_credentials").extract[cassandraCredentials]
           generatedSparkConf.set("spark.cassandra.connection.host", cassCreds.hostname)
             .set("spark.cassandra.auth.username", cassCreds.username)
             .set("spark.cassandra.auth.password", cassCreds.password)

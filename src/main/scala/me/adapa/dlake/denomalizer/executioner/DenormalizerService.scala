@@ -120,7 +120,7 @@ object DenormalizerService{
               .cassandraFormat
               .option("keyspace", jobMetadata.destLocationInfo.getGroupName)
               .option("table", jobMetadata.destLocationInfo.getTableName)
-              .mode(SaveMode.Overwrite)
+              .mode(SaveMode.Append)
               .save();
           }
           case DestinationType.delta =>

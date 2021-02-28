@@ -1,0 +1,39 @@
+{
+  "process_type" : "Denorm",
+
+  "source_type" : "delta",
+  "destination_type" : "cassandra",
+
+  "denorm_metadata": {
+
+    "job_type" : "Initial",
+
+    "source_table" : {
+      "table_name" : "FACT_WORKHISTORY",
+      "table_key" : "WH_KEY",
+      "bucket_name":"assets",
+      "suffix_path":"load"
+    },
+
+    "destination_table" : {
+      "table_name" : "fact_workhistory",
+      "table_key" : "wh_key",
+      "keyspace_name":"context_model"
+    },
+
+    "source_credentials" : {
+      "url" : "192.168.0.68:9000",
+      "access_key" : "minioadmin",
+      "secret_key" : "minioadmin"
+    },
+
+    "destination_credentials" : {
+      "username" : "cassandra",
+      "password" : "cassandra",
+      "hostname" : "192.168.0.68",
+      "port" : 9042
+    }
+
+  }
+
+}
