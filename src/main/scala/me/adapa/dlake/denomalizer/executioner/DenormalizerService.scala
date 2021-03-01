@@ -1,15 +1,16 @@
 package me.adapa.dlake.denomalizer.executioner
 
 import com.typesafe.config.Config
+import me.adapa.dlake.denomalizer.config.PersistConfigReader.getPartitionByColumn
 import me.adapa.dlake.denomalizer.config.SourceType.SourceType
 import me.adapa.dlake.denomalizer.config.{DestinationType, SourceType, SparkJobType}
 import me.adapa.dlake.denomalizer.entities.{TableConfig, locationClass}
 import me.adapa.dlake.denomalizer.entities.metadata.DenormMetaData
-import me.adapa.dlake.denomalizer.executioner.DenormalizerService.{readerService, writerService}
+import me.adapa.dlake.denomalizer.executioner.DenormalizerService.{partitionDataFrame, readerService, writerService}
 import me.adapa.dlake.denomalizer.util.DBUtil
 import org.apache.spark.sql.cassandra.{DataFrameReaderWrapper, DataFrameWriterWrapper}
-import org.apache.spark.sql.functions.{col, lit}
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.functions.{col, concat, date_format, date_trunc, dayofmonth, hour, lit, month, year}
+import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 
 import scala.annotation.tailrec
 
@@ -103,6 +104,19 @@ object DenormalizerService{
     return joinedTables;
   }
 
+  def truncateTStohourStringInt(partByCol:Column)  = {
+//    val yr = year(partByCol)
+//    val mnth = month(partByCol)
+//    val dd = dayofmonth(partByCol)
+//    val hr = hour(partByCol)
+//    concat(yr,mnth,dd,hr).cast("int")
+    date_format(partByCol,"yyyyMMddHH").cast("int")
+  }
+  def partitionDataFrame (sparkDf:DataFrame,partByCol:String):DataFrame ={
+//    sparkDf.withColumn("partition_key", (date_trunc("hour",col(partByCol))))
+    sparkDf.withColumn("partition_key",truncateTStohourStringInt(col(partByCol)))
+  }
+
 
   def writerService(sparkDataFrameToWrite : DataFrame, jobMetadata: DenormMetaData): Unit = {
 
@@ -174,9 +188,11 @@ class DenormalizerService(jobMetadata: DenormMetaData,appAdminConfig:Config)  {
     * */
 
     val sourceRawDf: DataFrame = readerService(jobMetadata,sparkSessionBuiltObject,appAdminConfig)
-    val transformedDF = sourceRawDf.withColumn("tenant",lit("jobMetadata.sourceLocationInfo.getSuffix"))
+
+    val transformedDF = sourceRawDf.withColumn("tenant",lit(jobMetadata.sourceLocationInfo.getSuffix))
     transformedDF.printSchema()
-    writerService(transformedDF,jobMetadata)
+    def transformedPartDf = partitionDataFrame(transformedDF,getPartitionByColumn(jobMetadata.sourceLocationInfo.getTableName))
+    writerService(transformedPartDf,jobMetadata)
     sparkSessionBuiltObject.stop()
   }
 }

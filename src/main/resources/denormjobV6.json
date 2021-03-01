@@ -12,7 +12,7 @@
       "table_name" : "FACT_WORKHISTORY",
       "table_key" : "WH_KEY",
       "bucket_name":"assets",
-      "suffix_path":"load"
+      "suffix_path":"3d795ac3-2cea-4ed2-92d8-3d71a2539cf2"
     },
 
     "destination_table" : {

@@ -10,7 +10,6 @@ create table fact_workhistory
     wh_bdn_key             double,
     unit_key               double,
     failure_code_key       double,
-    wh_key                 double PRIMARY KEY,
     wh_id                  text,
     wh_total_cost          double,
     wh_maint_cost          double,
@@ -71,6 +70,11 @@ create table fact_workhistory
     eq_class_name          text,
     eq_category_id         int,
     eq_category_name       text,
-    tenant                 text
+    tenant                 UUID,
+    partition_key         bigint,
+    wh_key                 double,
+    PRIMARY KEY ((tenant,partition_key),wh_key)
+);
 
-)
+CREATE INDEX on fact_workhistory (wh_key);
+
