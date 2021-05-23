@@ -15,7 +15,7 @@
       "table_name" : "FACT_WORKHISTORY",
       "table_key" : "WH_KEY",
       "bucket_name":"assets",
-      "suffix_path":"load"
+      "suffix_path":"load_delta"
     },
 
     "destination_table" : {
@@ -26,7 +26,7 @@
     },
 
     "source_credentials" : {
-      "url" : "192.168.0.68:9000",
+      "url" : "10.181.212.127:9000",
       "access_key" : "minioadmin",
       "secret_key" : "minioadmin"
     },
@@ -34,7 +34,7 @@
     "destination_credentials" : {
       "access_key" : "minioadmin",
       "secret_key" : "minioadmin",
-      "url" : "192.168.0.68:9000"
+      "url" : "10.181.212.127:9000"
     }
 
   }

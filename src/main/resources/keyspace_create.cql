@@ -1,3 +1,4 @@
+create keyspace context_model WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 1};
 create table fact_workhistory
 (
     eq_type_key            double,

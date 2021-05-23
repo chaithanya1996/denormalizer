@@ -114,7 +114,7 @@ object DenormalizerService{
   }
   def partitionDataFrame (sparkDf:DataFrame,partByCol:String):DataFrame ={
 //    sparkDf.withColumn("partition_key", (date_trunc("hour",col(partByCol))))
-    sparkDf.withColumn("partition_key",truncateTStohourStringInt(col(partByCol)))
+    sparkDf.withColumn("partition_key",truncateTStohourStringInt(col(partByCol))).repartition(col("partition_key"))
   }
 
 
